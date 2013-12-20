@@ -1,25 +1,25 @@
 package com.mvas.webproxy.config;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class Config implements IConfig {
 
     private static volatile IConfig configClass;
     private static volatile Config instance;
-    private static boolean initialized = false;
 
     private Config()
     {
 
     }
 
-    public static Config getInstance(final IConfig configClass)
+    public static Config getInstance(final IConfig configClass) throws IOException
     {
         Config.configClass = configClass;
         return getInstance();
     }
 
-    public static Config getInstance() {
+    public static Config getInstance() throws IOException {
         Config localInstance = instance;
         if (localInstance == null) {
             synchronized (Config.class) {
@@ -39,8 +39,7 @@ public class Config implements IConfig {
     @Override
     public synchronized void init() {
         if(configClass == null)
-            throw new IllegalStateException();
-        initialized = true;
+            throw new IllegalStateException("Configuration class not defined");
     }
 
     @Override

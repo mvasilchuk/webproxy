@@ -8,6 +8,7 @@ import com.mvas.webproxy.portals.StalkerServerChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -28,7 +29,8 @@ public class PortalConfiguration {
     }
 
     private static volatile PortalConfiguration instance;
-    public static PortalConfiguration getInstance() {
+    public static PortalConfiguration getInstance(IConfig config) throws IOException
+    {
         PortalConfiguration localInstance = instance;
         if (localInstance == null) {
             synchronized (PortalConfiguration.class) {
@@ -36,8 +38,8 @@ public class PortalConfiguration {
                 if (localInstance == null) {
                     //logger.debug("Creating instance of PortalConfiguration");
                     instance = localInstance = new PortalConfiguration();
-                    config = Config.getInstance(new IniConfig());
-                    config.init();
+                    PortalConfiguration.config = Config.getInstance(config);
+                    PortalConfiguration.config.init();
                 }
             }
         }

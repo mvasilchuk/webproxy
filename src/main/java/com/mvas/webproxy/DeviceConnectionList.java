@@ -39,7 +39,7 @@ public class DeviceConnectionList {
     {
         for(Map.Entry<String, DeviceConnectionInfo> entry: infoList.entrySet())
         {
-            logger.debug("Device connection: " + entry.getKey() + " -> " + entry.getValue());
+            logger.debug("connection: " + entry.getKey());
         }
     }
 }

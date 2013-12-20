@@ -1,6 +1,8 @@
 package com.mvas.webproxy;
 
 import com.mvas.webproxy.config.PortalConfiguration;
+import com.mvas.webproxy.exceptions.ErrorCodes;
+import com.mvas.webproxy.exceptions.WebServerException;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandler;
@@ -30,7 +32,7 @@ public class WebServer  {
     public static final String INDEX_FILE = "index.html";
     public static final String WEB_ROOT_DIR = "/";
 
-    private HashMap<Integer, Server> servers = new HashMap<>();
+    private Server server = null;
     private static volatile WebServer instance;
     HandlerCollection handlerCollection;
 
@@ -39,8 +41,6 @@ public class WebServer  {
     static final class WebServerInstanceInfo {
         String bindAddress;
         Integer port;
-        Server server;
-        Thread thread;
     }
 
     private static final ArrayList<WebServerInstanceInfo> serverInstances = new ArrayList<>();
@@ -49,20 +49,11 @@ public class WebServer  {
         return portalConfiguration;
     }
 
-    static final PortalConfiguration portalConfiguration;
-
-    static {
-        portalConfiguration = PortalConfiguration.getInstance();
-    }
+    static PortalConfiguration portalConfiguration;
 
 
-    public static void main(String[] args)
-    {
 
-        runWebServer(args);
-    }
-
-    public static void runWebServer(final String[] args)
+    public void runWebServer() throws WebServerException
     {
         listLocalIpAddresses();
 
@@ -70,24 +61,25 @@ public class WebServer  {
 
         ArrayList<String> configGroups = portalConfiguration.getGroups();
 
-
         for (String configGroup : configGroups) {
             WebServerInstanceInfo instance = new WebServerInstanceInfo();
 
             String[] address = configGroup.split(":");
             if (address.length == 2)
             {
-                //instance.bindAddress = address[0];
+                instance.bindAddress = address[0];
                 instance.port = Integer.parseInt(address[1]);
             }
             else if (address.length == 1) {
-                //instance.bindAddress = address[0];
+                instance.bindAddress = address[0];
                 instance.port = 80;
             }
 
             serverInstances.add(instance);
         }
-        server.startServer();
+
+        this.server = server.startServer();
+
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -98,12 +90,19 @@ public class WebServer  {
         });
     }
 
-    public static WebServer getInstance() {
+    public static WebServer getInstance(final PortalConfiguration portalConfiguration, final HashMap<String, String> arguments)
+    {
         WebServer localInstance = instance;
         if (localInstance == null) {
             synchronized (WebServer.class) {
                 localInstance = instance;
                 if (localInstance == null) {
+                    if(portalConfiguration == null)
+                        throw new IllegalStateException("Configuration not found!");
+                    if(arguments == null)
+                        throw new IllegalStateException("Command line arguments not found!");
+
+                    WebServer.portalConfiguration = portalConfiguration;
                     instance = localInstance = new WebServer();
                 }
             }
@@ -111,7 +110,9 @@ public class WebServer  {
         return localInstance;
     }
 
-
+    public static WebServer getInstance() {
+        return getInstance(null, null);
+    }
 
     public static String listLocalIpAddresses(){
         try {
@@ -131,7 +132,7 @@ public class WebServer  {
         return null;
     }
 
-    protected Server startServer()
+    protected Server startServer() throws WebServerException
     {
         Server server = new Server();
 
@@ -140,6 +141,7 @@ public class WebServer  {
         for(int index = 0; index < instancesSize; index++)
         {
             Connector connector = new SelectChannelConnector();
+            connector.setHost(BIND_ADDRESS);
             connector.setPort(serverInstances.get(index).port);
             ports[index] = connector;
         }
@@ -152,12 +154,14 @@ public class WebServer  {
         try {
             server.start();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.toString());
+            throw new WebServerException(ErrorCodes.E_WEB_SERVER_ERROR);
         }
         try {
             server.join();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e.toString());
+            throw new WebServerException(ErrorCodes.E_WEB_SERVER_ERROR);
         }
 
 
@@ -175,15 +179,12 @@ public class WebServer  {
 
     public void stopServers()
     {
-        logger.debug("Stopping web servers...");
-        for(WebServerInstanceInfo instance: serverInstances)
-        {
+        logger.debug("Stopping web server...");
+        if(server != null)
             try {
-                if(instance != null && instance.server != null)
-                    instance.server.stop();
+                server.stop();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
     }
 }

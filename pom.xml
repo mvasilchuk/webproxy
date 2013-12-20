@@ -6,12 +6,35 @@
     <artifactId>webproxy</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <properties>
+        <!--
+        <java.bootstrap.classes>
+            ${java.home}/lib/rt.jar
+        </java.bootstrap.classes>
+        <java.cryptographic.extension.classes>
+            ${java.home}/lib/jce.jar
+        </java.cryptographic.extension.classes>
+        <java.secure.socket.extension.classes>
+            ${java.home}/lib/jsse.jar
+        </java.secure.socket.extension.classes>
+        -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.4</version>
         </dependency>
+
 
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -32,20 +55,9 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20131018</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
-            <version>2.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -55,6 +67,11 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
+            <version>8.1.8.v20121106</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-jmx</artifactId>
             <version>8.1.8.v20121106</version>
         </dependency>
     </dependencies>
@@ -68,10 +85,13 @@
         </resources>
 
         <plugins>
+
+
             <plugin>
                 <!-- Build an executable JAR -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -91,6 +111,100 @@
                     <target>1.7</target>
                 </configuration>
             </plugin>
+
+            <!--
+            ProGuard configuration
+            For those who want to make WebProxy lighter.
+            Configuration is not finished yet and may not work!
+            -->
+
+            <!--
+
+            <plugin>
+                <groupId>com.github.wvengen</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>proguard</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>proguard</goal>
+                        </goals>
+
+                    </execution>
+                </executions>
+                <configuration>
+                    <options>
+                        <option>-keepattributes *Annotation*</option>
+                        <option>-keep class com.mvas.webproxy.Main { public static void main(java.lang.String[]); }</option>
+                        <option>-keepclassmembers class * { java.lang.String valueOf(java.lang.String);}</option>
+                        <option>-keepclassmembers class * { java.lang.Object clone();}</option>
+                        <option>-keepclassmembers class java.text.** { *; }</option>
+                        <option>-keepclassmembers class java.text.Normalizer$Form { java.text.Normalizer$Form NFD; }</option>
+                        <option>-keep class org.eclipse.jetty.jmx.ObjectMBean</option>
+                        <option>-keep class org.slf4j.Logger</option>
+                        <option>-keepclassmembers class org.apache.log4j.BasicConfigurator { *; }</option>
+                        <option>-dontwarn org.eclipse.jetty.util.log.JettyAwareLogger</option>
+                        <option>-keep class org.eclipse.jetty.util.component.LifeCycle</option>
+
+
+                    </options>
+                    <libs>
+                        <lib>${java.bootstrap.classes}</lib>
+                        <lib>${java.cryptographic.extension.classes}</lib>
+                        <lib>${java.secure.socket.extension.classes}</lib>
+                    </libs>
+                    <assembly>
+                        <inclusions>
+
+                            <inclusion>
+                                <groupId>commons-io</groupId>
+                                <artifactId>commons-io</artifactId>
+                            </inclusion>
+                            <inclusion>
+                                <groupId>org.slf4j</groupId>
+                                <artifactId>slf4j-api</artifactId>
+                            </inclusion>
+
+                            <inclusion>
+                                <groupId>org.slf4j</groupId>
+                                <artifactId>slf4j-log4j12</artifactId>
+                            </inclusion>
+                            <inclusion>
+                                <groupId>org.ini4j</groupId>
+                                <artifactId>ini4j</artifactId>
+                            </inclusion>
+                            <inclusion>
+                                <groupId>org.json</groupId>
+                                <artifactId>json</artifactId>
+                            </inclusion>
+                            <inclusion>
+                                <groupId>org.apache.commons</groupId>
+                                <artifactId>commons-lang3</artifactId>
+                            </inclusion>
+                            <inclusion>
+                                <groupId>org.eclipse.jetty</groupId>
+                                <artifactId>jetty-server</artifactId>
+                            </inclusion>
+                            <inclusion>
+                                <groupId>org.eclipse.jetty</groupId>
+                                <artifactId>jetty-jmx</artifactId>
+                            </inclusion>
+
+                        </inclusions>
+                    </assembly>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>net.sf.proguard</groupId>
+                        <artifactId>proguard-base</artifactId>
+                        <version>4.10</version>
+                        <scope>runtime</scope>
+                    </dependency>
+                </dependencies>
+
+            </plugin>
+            -->
 
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -112,11 +226,27 @@
                         </manifest>
                     </archive>
                 </configuration>
-            </plugin>
 
+
+            </plugin>
         </plugins>
 
 
     </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <onlyAnalyze>com.mvas.*</onlyAnalyze>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
+
 
 </project>

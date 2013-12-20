@@ -1,7 +1,6 @@
 package com.mvas.webproxy;
 
-import com.mvas.webproxy.config.Config;
-import com.mvas.webproxy.config.IniConfig;
+import com.mvas.webproxy.common.Utils;
 import com.mvas.webproxy.config.PortalConfiguration;
 import com.mvas.webproxy.portals.AbstractRequestHandler;
 import org.apache.commons.io.IOUtils;
@@ -17,7 +16,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PushbackInputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -25,6 +23,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class DefaultHandler extends AbstractHandler {
     private Logger logger = LoggerFactory.getLogger(DefaultHandler.class);
@@ -56,18 +55,15 @@ public class DefaultHandler extends AbstractHandler {
         public static final String X_EMULATOR_CONNECTION_NAME = X_HEADER_PREFIX + "Connection-Name";
     }
 
-    protected Config config;
     public DefaultHandler(ContextHandler context)
     {
         this.context = context;
-
-        config = Config.getInstance(new IniConfig());
     }
 
     protected RequestData parseRequest(String target, Request baseRequest, HttpServletRequest request,
                                        HttpServletResponse response)
     {
-        logger.debug("-- DefaultHandler::parseRequest --");
+        logger.debug("DefaultHandler::parseRequest()");
         RequestData requestData = new RequestData();
         requestData.target = target;
         requestData.request = request;
@@ -137,7 +133,7 @@ public class DefaultHandler extends AbstractHandler {
 
     public synchronized DeviceConnectionInfo getConnectionInfo(final String connectionName, final HttpServletRequest request)
     {
-        logger.debug("-- DefaultHandler::getConnectionInfo --");
+        logger.debug("DefaultHandler::getConnectionInfo()");
         DeviceConnectionInfo connection = connectionList.getConnectionInfo(connectionName);
         if(connection == null)
         {
@@ -145,7 +141,7 @@ public class DefaultHandler extends AbstractHandler {
             connection.name = connectionName;
             connectionList.addConnectionInfo(connectionName, connection);
         }
-        connectionList.printList();
+        //connectionList.printList();
         return connection;
     }
 
@@ -154,8 +150,7 @@ public class DefaultHandler extends AbstractHandler {
     public void handle(final String target, final Request baseRequest, final HttpServletRequest request,
                        final HttpServletResponse response)
             throws IOException, ServletException {
-        logger.debug("TARGET: " + target);
-        logger.debug("-- DefaultHandler::handle --");
+        logger.debug("DefaultHandler::handle()");
         //Current request data
         RequestData requestData = parseRequest(target, baseRequest, request, response);
         requestData.setConnectionName(request.getServerName() + ":" + request.getServerPort());
@@ -219,7 +214,7 @@ public class DefaultHandler extends AbstractHandler {
                                    final HttpServletResponse response) throws MalformedURLException {
         //We use emulator
 
-        logger.debug("-- processRequest --");
+        logger.debug("DefaultHandler::processRequest()");
 
         DeviceConnectionInfo connection = getConnectionInfo(requestData.getConnectionName(), request);
 
@@ -243,12 +238,8 @@ public class DefaultHandler extends AbstractHandler {
         try {
 
             URLConnection conn;
-            if(requestHandler != null)
-            {
-                conn = requestData.getRealUrl().openConnection();
-            }
-            else
-                conn = requestData.getRealUrl().openConnection();
+            conn = requestData.getRealUrl().openConnection();
+
             logger.debug("baseUrl: " + conn.getURL().toString());
 
             for(Map.Entry<String, String> header: requestData.getHeaders().entrySet())
@@ -266,72 +257,31 @@ public class DefaultHandler extends AbstractHandler {
             logger.debug("Content-Type: " + contentType);
 
             // Only parse text files.
-            if(contentType.contains("html") || contentType.contains("javascript") || contentType.contains("json") || contentType.contains("xml") || contentType.contains("text"))
+            if( contentType.contains("html")
+                || contentType.contains("javascript")
+                || contentType.contains("json")
+                || contentType.contains("xml")
+                || contentType.contains("text"))
             {
                 // Trying to decompress possibly gzipped stream
-                in = decompressStream(in);
+                in = Utils.decompressStream(in);
                 if(requestHandler != null)
                     in = requestHandler.onResponse(requestData, in);
-
-                boolean isGzipped = false;
-                if(in instanceof GZIPInputStream)
-                {
-                    isGzipped = true;
-                    logger.debug("GZIPPED!!!");
-                }
-
-                if(isGzipped)
-                {
-                    String data = IOUtils.toString(in);
-
-                    //logger.debug(data);
-
-                    logger.debug("URL:" + conn.getURL().toString());
-                    for(Map.Entry<String, List<String>> entry: conn.getHeaderFields().entrySet())
-                    {
-                        String name = entry.getKey();
-                        for(String value: entry.getValue())
-                        {
-                            if(name != null)
-                            {
-                                if(name.equals(X_REQUESTED_WITH) && value.equals(EMULATOR_PACKAGE_NAME))
-                                    continue;
-                                //logger.debug("In: [" + name + ":" + value + "]");
-                                else if(name.equals("Transfer-Encoding"))
-                                {
-                                    //logger.debug("Transfer-Encoding: " + value);
-                                    continue;
-                                }
-                                else if(name.equals("Content-Length"))
-                                {
-                                    logger.debug("Content length: " + value);
-                                    value = String.valueOf(data.length());
-                                }
-                                else if(name.equals("Content-Encoding"))
-                                {
-                                    //logger.debug("Content-Encoding: " + value);
-                                    continue;
-                                }
-                                response.setHeader(name, value);
-                            }
-
-                        }
-
-                    }
-                    in = IOUtils.toInputStream(data);
-                }
-                else
-                    copyHeaders(conn, response);
             }
-            // Just copy all other files
+
+            copyHeaders(conn, response);
+
+
+            OutputStream os;
+            if(in instanceof GZIPInputStream)
+            {
+                os = new GZIPOutputStream(response.getOutputStream());
+            }
             else
             {
-                copyHeaders(conn, response);
+                os = response.getOutputStream();
             }
-
-            OutputStream os = response.getOutputStream();
             IOUtils.copy(in, os);
-
             os.flush();
             in.close();
             os.close();
@@ -343,6 +293,7 @@ public class DefaultHandler extends AbstractHandler {
 
     public void copyHeaders(final URLConnection connection, final HttpServletResponse response)
     {
+        logger.debug("DefaultHandler::copyHeaders()");
         for(Map.Entry<String, List<String>> entry: connection.getHeaderFields().entrySet())
         {
             String name = entry.getKey();
@@ -352,34 +303,10 @@ public class DefaultHandler extends AbstractHandler {
                 {
                     if(name.equals(X_REQUESTED_WITH) && value.equals(EMULATOR_PACKAGE_NAME))
                         continue;
-                    if(name.equals("Transfer-Encoding"))
-                    {
-                        logger.debug("Transfer-Encoding: " + value);
-                        continue;
-                    }
-                    //logger.debug(name + ":" + value);
                     response.setHeader(name, value);
                 }
             }
         }
-    }
-
-    /**
-     * Method to decompress GZip input stream
-     *
-    */
-    public static InputStream decompressStream(final InputStream input) throws IOException {
-        PushbackInputStream pb = new PushbackInputStream( input, 2 ); //we need a pushbackstream to look ahead
-
-        byte [] signature = new byte[2];
-        //noinspection ResultOfMethodCallIgnored
-        pb.read( signature ); //read the signature
-        pb.unread( signature ); //push back the signature to the stream
-
-        if( signature[ 0 ] == (byte) 0x1f && signature[ 1 ] == (byte) 0x8b ) //check if matches standard gzip magic number
-            return new GZIPInputStream( pb );
-        else
-            return pb;
     }
 
     public static boolean isGzipStream(byte[] bytes) {

@@ -26,6 +26,7 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(StalkerRequestHandler.class);
 
     public static final String GET_PARAM_DEVICE_ID = "device_id";
+    public static final String GET_PARAM_DEVICE_ID2 = "device_id2";
     public static final String GET_PARAM_SIGNATURE = "signature";
     public static final String GET_PARAM_SESSION = "session";
 
@@ -34,6 +35,9 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
     public static final String GET_PARAM_MAC_ADDRESS = "mac";
 
     public static final String ACTION_HANDSHAKE = "action=handshake";
+
+    Pattern cookiePattern = Pattern.compile(".*mac=(([0-9A-F]{2}[:-]){5}([0-9A-F]{2})).*");
+    Pattern handshakePattern = Pattern.compile(ACTION_HANDSHAKE);
 
     public static final String HEADER_AUTHORIZATION = "Authorization";
 
@@ -58,18 +62,22 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
 
     DeviceConnectionInfo deviceConnectionInfo;
 
-    HashMap<String, Pattern> replacements = new HashMap<>();
+    static HashMap<String, Pattern> replacements = new HashMap<>();
 
     static String[] configOptions;
     static String[] getParamNames;
 
     static {
         getParamNames = new String[] {
-                GET_PARAM_DEVICE_ID, GET_PARAM_SIGNATURE, GET_PARAM_SESSION
+             GET_PARAM_DEVICE_ID, GET_PARAM_DEVICE_ID2, GET_PARAM_SIGNATURE, GET_PARAM_SESSION
         };
 
+        for (String name : getParamNames) {
+            replacements.put(name, Pattern.compile("([\\?&])?(" + name + ")=([a-zA-Z0-9/+]*)"));
+        }
+
         configOptions = new String[] {
-                GET_PARAM_DEVICE_ID, GET_PARAM_SIGNATURE, GET_PARAM_SESSION, CONFIG_PORTAL_URL, GET_PARAM_MAC_ADDRESS
+            GET_PARAM_DEVICE_ID, GET_PARAM_DEVICE_ID2, GET_PARAM_SIGNATURE, GET_PARAM_SESSION, CONFIG_PORTAL_URL, GET_PARAM_MAC_ADDRESS
         };
     }
 
@@ -86,20 +94,13 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
     public StalkerRequestHandler(DeviceConnectionInfo deviceConnectionInfo)
     {
         this.deviceConnectionInfo = deviceConnectionInfo;
-
-        for (String name : getParamNames) {
-            replacements.put(name, Pattern.compile("([\\?&])?(" + name + ")=([a-zA-Z0-9/+]*)"));
-        }
     }
 
     @Override
     public String getURL(final RequestData requestData) {
-        logger.debug("-- StalkerRequestHandler::getURL --");
+        logger.debug("StalkerRequestHandler::getURL()");
         String result = requestData.getRealUrl().toString();
 
-        logger.debug("getURL(" + result + ")");
-
-        String macAddress = requestData.getMacAddress();
         HashMap<String, String> staticParams = getParamsForRequest(requestData).getList();
         for(Map.Entry<String, Pattern> entry: replacements.entrySet())
         {
@@ -114,6 +115,8 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
                     logger.debug("set static param [" + name + "] to [" + value + "]");
 
                     if(name.equals(GET_PARAM_DEVICE_ID))
+                        WebServer.getPortalConfiguration().set(requestData.getConnectionName(), name, value);
+                    if(name.equals(GET_PARAM_DEVICE_ID2))
                         WebServer.getPortalConfiguration().set(requestData.getConnectionName(), name, value);
                 }
             }
@@ -131,31 +134,26 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
 
     @Override
     public void onRequest(final RequestData requestData, final URLConnection urlConnection) {
-        logger.debug("-- StalkerRequestHandler::onRequest --");
+        logger.debug("StalkerRequestHandler::onRequest()");
         HashMap<String, String> staticHeaders = getHeadersForRequest(requestData).getList();
-
-        for(Map.Entry<String, HeadersList> h: staticHeadersForMac.entrySet())
-        {
-            logger.debug("mac address: " + requestData.getMacAddress() + " for " + h.getKey() + " -> " + this.toString());
-            for(Map.Entry<String, String> header: staticHeaders.entrySet())
-            {
-                logger.debug("---->>>>" + header.getKey() + " -> " + header.getValue());
-            }
-        }
 
         for(Map.Entry<String, String> header: requestData.getHeaders().entrySet())
         {
             String headerName = header.getKey();
             String headerValue = header.getValue();
-            //logger.debug("hhh:" + headerName + " -> " + headerValue);
+
             if(headerName.equals(HEADER_AUTHORIZATION))
             {
-                logger.debug("Overwriting [" + HEADER_AUTHORIZATION + "] from {"  + headerValue+ " } to {" + staticHeaders.get(HEADER_AUTHORIZATION) + "}");
                 if(staticHeaders.get(HEADER_AUTHORIZATION) == null)
                     staticHeaders.put(HEADER_AUTHORIZATION, headerValue);
                 else
                 {
-                    urlConnection.setRequestProperty(HEADER_AUTHORIZATION, staticHeaders.get(HEADER_AUTHORIZATION));
+                    String authorizationHeader = staticHeaders.get(HEADER_AUTHORIZATION);
+                    if(headerValue.equals(authorizationHeader))
+                        continue;
+
+                    logger.debug("Overwriting [" + HEADER_AUTHORIZATION + "] from {" + headerValue + " } to {" + authorizationHeader + "}");
+                    urlConnection.setRequestProperty(HEADER_AUTHORIZATION, authorizationHeader);
                 }
 
             }
@@ -164,7 +162,7 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
 
     @Override
     public InputStream onResponse(final RequestData requestData, final InputStream iStream) {
-        logger.debug("-- StalkerRequestHandler::onResponse --");
+        logger.debug("StalkerRequestHandler::onResponse()");
 
         String target = requestData.getTarget();
         if(!target.contains(".php"))
@@ -172,8 +170,6 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
 
         try {
             String data = IOUtils.toString(iStream);
-            //logger.debug("data:" + data);
-            Pattern handshakePattern = Pattern.compile(ACTION_HANDSHAKE);
             Matcher matcher = handshakePattern.matcher(requestData.getRealUrl().toString());
             if(matcher.find())
             {
@@ -190,13 +186,12 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
 
     @Override
     public void onBeforeRequest(final RequestData requestData, final PortalConfiguration portalConfiguration) {
-        logger.debug("-- StalkerRequestHandler::onBeforeRequest --");
+        logger.debug("StalkerRequestHandler::onBeforeRequest()");
         String macAddress = requestData.getMacAddress();
 
         if(macAddress == null || macAddress.isEmpty())
         {
             String cookie = requestData.getCookie().replace("%3A", ":");
-            Pattern cookiePattern = Pattern.compile(".*mac=(([0-9A-F]{2}[:-]){5}([0-9A-F]{2})).*");
             Matcher matcher = cookiePattern.matcher(cookie);
             if(matcher.find())
             {
@@ -237,8 +232,6 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
             staticParamsForMac.put(macAddress, params);
         }
 
-
-
         try {
             requestData.setRealUrl(new URL(getURL(requestData)));
         } catch (MalformedURLException e) {
@@ -248,8 +241,7 @@ public class StalkerRequestHandler implements AbstractRequestHandler {
 
     public void processHandshake(final RequestData requestData, final String data)
     {
-        logger.debug("-- StalkerRequestHandler::processHandshake --");
-        String macAddress = requestData.getMacAddress();
+        logger.debug("StalkerRequestHandler::processHandshake()");
         HashMap<String, String> staticHeaders =  getHeadersForRequest(requestData).getList();
         JSONObject json;
         try {

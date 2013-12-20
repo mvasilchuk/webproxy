@@ -3,17 +3,24 @@ package com.mvas.webproxy;
 import com.mvas.webproxy.portals.AbstractRequestHandler;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.Serializable;
 import java.net.URL;
 import java.util.HashMap;
 
 
-public class RequestData implements Serializable {
+public class RequestData {
     protected URL proxyUrl;
 
     protected URL realUrl;
     protected String target;
     protected String macAddress;
+
+    protected String deviceId;
+    protected String serialNumber;
+    protected String cookie;
+    protected HttpServletRequest request;
+
+    protected HashMap<String, String> queryParams;
+    protected HashMap<String, String> headers;
 
     public String getConnectionName() {
         return connectionName;
@@ -51,13 +58,7 @@ public class RequestData implements Serializable {
         this.serialNumber = serialNumber;
     }
 
-    protected String deviceId;
-    protected String serialNumber;
-    protected String cookie;
-    protected HttpServletRequest request;
 
-    protected HashMap<String, String> queryParams;
-    protected HashMap<String, String> headers;
 
     public URL getProxyUrl() {
         return proxyUrl;

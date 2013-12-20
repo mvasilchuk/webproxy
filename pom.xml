@@ -84,9 +84,8 @@
             </resource>
         </resources>
 
+
         <plugins>
-
-
             <plugin>
                 <!-- Build an executable JAR -->
                 <groupId>org.apache.maven.plugins</groupId>
@@ -212,7 +211,7 @@
                     <execution>
                         <phase>package</phase>
                         <goals>
-                            <goal>attached</goal>
+                            <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -225,6 +224,8 @@
                             <mainClass>com.mvas.webproxy.Main</mainClass>
                         </manifest>
                     </archive>
+                    <finalName>webproxy-${version}-${maven.build.timestamp}.apk</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
 
 

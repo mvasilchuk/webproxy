@@ -187,4 +187,15 @@ public class WebServer  {
                 e.printStackTrace();
             }
     }
+
+    public static final class HEADERS {
+        public static final String X_EMULATOR_MAC_ADDRESS = DefaultHandler.X_HEADER_PREFIX + "Mac-Address";
+        public static final String X_EMULATOR_DEVICE_ID = DefaultHandler.X_HEADER_PREFIX + "Device-Id";
+        public static final String X_EMULATOR_SERIAL_NUMBER = DefaultHandler.X_HEADER_PREFIX + "Serial-Number";
+
+        public static final String X_EMULATOR_REAL_URL = DefaultHandler.X_HEADER_PREFIX + "Real-Url";
+        public static final String X_EMULATOR_PROXY_URL = DefaultHandler.X_HEADER_PREFIX + "Proxy-Url";
+        public static final String X_EMULATOR_VERSION = DefaultHandler.X_HEADER_PREFIX + "Version";
+        public static final String X_EMULATOR_CONNECTION_NAME = DefaultHandler.X_HEADER_PREFIX + "Connection-Name";
+    }
 }

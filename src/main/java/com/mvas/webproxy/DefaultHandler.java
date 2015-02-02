@@ -44,17 +44,6 @@ public class DefaultHandler extends AbstractHandler {
     public static final String X_REQUESTED_WITH = "X-Requested-With";
     public static final String EMULATOR_PACKAGE_NAME = "com.vasilchmax";
 
-    public static final class HEADERS {
-        public static final String X_EMULATOR_MAC_ADDRESS = X_HEADER_PREFIX + "Mac-Address";
-        public static final String X_EMULATOR_DEVICE_ID = X_HEADER_PREFIX + "Device-Id";
-        public static final String X_EMULATOR_SERIAL_NUMBER = X_HEADER_PREFIX + "Serial-Number";
-
-        public static final String X_EMULATOR_REAL_URL = X_HEADER_PREFIX + "Real-Url";
-        public static final String X_EMULATOR_PROXY_URL = X_HEADER_PREFIX + "Proxy-Url";
-        public static final String X_EMULATOR_VERSION = X_HEADER_PREFIX + "Version";
-        public static final String X_EMULATOR_CONNECTION_NAME = X_HEADER_PREFIX + "Connection-Name";
-    }
-
     public DefaultHandler(ContextHandler context)
     {
         this.context = context;
@@ -79,22 +68,22 @@ public class DefaultHandler extends AbstractHandler {
                 try {
                     switch(headerName)
                     {
-                        case HEADERS.X_EMULATOR_REAL_URL:
+                        case WebServer.HEADERS.X_EMULATOR_REAL_URL:
                             requestData.setRealUrl(new URL(headerValue));
                             break;
-                        case HEADERS.X_EMULATOR_PROXY_URL:
+                        case WebServer.HEADERS.X_EMULATOR_PROXY_URL:
                             requestData.setProxyUrl(new URL(headerValue));
                             break;
-                        case HEADERS.X_EMULATOR_MAC_ADDRESS:
+                        case WebServer.HEADERS.X_EMULATOR_MAC_ADDRESS:
                             requestData.setMacAddress(headerValue);
                             break;
-                        case HEADERS.X_EMULATOR_DEVICE_ID:
+                        case WebServer.HEADERS.X_EMULATOR_DEVICE_ID:
                             requestData.setDeviceId(headerValue);
                             break;
-                        case HEADERS.X_EMULATOR_SERIAL_NUMBER:
+                        case WebServer.HEADERS.X_EMULATOR_SERIAL_NUMBER:
                             requestData.setSerialNumber(headerValue);
                             break;
-                        case HEADERS.X_EMULATOR_CONNECTION_NAME:
+                        case WebServer.HEADERS.X_EMULATOR_CONNECTION_NAME:
                             requestData.setConnectionName(headerValue);
                             break;
                         default:

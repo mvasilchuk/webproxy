@@ -4,7 +4,7 @@
         package="com.mvas.webproxy"
           >
     <uses-sdk
-        android:minSdkVersion="11"
-        android:targetSdkVersion="19"/>
+        android:minSdkVersion="14"
+        android:targetSdkVersion="22"/>
     <application />
 </manifest>

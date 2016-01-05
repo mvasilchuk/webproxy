@@ -16,8 +16,10 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion '21.1.2'
+    //noinspection GroovyAssignabilityCheck
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    //noinspection GroovyAssignabilityCheck
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
     sourceSets {
         main {
@@ -34,5 +36,15 @@ android {
 
     lintOptions {
         abortOnError false
+    }
+
+    packagingOptions {
+        exclude '.readme'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/MANIFEST.MF'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
     }
 }

@@ -1,18 +1,18 @@
 apply plugin: 'com.android.library'
 
 repositories {
-    mavenCentral()
+    jcenter()
 }
 
 dependencies {
-    compile 'junit:junit:4.11'
+    testCompile 'junit:junit:4.12'
     compile 'commons-io:commons-io:2.4'
-    compile 'org.slf4j:slf4j-api:1.7.5'
-    compile 'org.slf4j:slf4j-log4j12:1.7.5'
-    compile 'org.ini4j:ini4j:0.5.2'
+    compile 'org.slf4j:slf4j-api:1.7.13'
+    compile 'org.slf4j:slf4j-log4j12:1.7.13'
+    compile 'org.ini4j:ini4j:0.5.4'
     compile 'org.json:json:20131018'
-    compile 'org.apache.commons:commons-lang3:3.3.2'
-    compile 'org.eclipse.jetty:jetty-server:8.1.8.v20121106'
+    compile 'org.apache.commons:commons-lang3:3.4'
+    compile 'org.eclipse.jetty:jetty-server:8.1.18.v20150929'
 }
 
 android {

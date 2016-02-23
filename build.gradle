@@ -21,11 +21,9 @@ android {
     //noinspection GroovyAssignabilityCheck
     buildToolsVersion rootProject.ext.buildToolsVersion
 
+    //noinspection GroovyAssignabilityCheck
     sourceSets {
         main {
-            java.srcDirs = ['src/main/java']
-            resources.srcDirs = []
-            res.srcDirs = []
         }
     }
 

@@ -1,3 +1,12 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.1.0'
+    }
+}
+
 apply plugin: 'com.android.library'
 
 repositories {
@@ -6,13 +15,13 @@ repositories {
 
 dependencies {
     testCompile 'junit:junit:4.12'
-    compile 'commons-io:commons-io:2.4'
-    compile 'org.slf4j:slf4j-api:1.7.13'
-    compile 'org.slf4j:slf4j-log4j12:1.7.13'
+    compile 'commons-io:commons-io:2.5'
+    compile 'org.slf4j:slf4j-api:1.7.21'
+    compile 'org.slf4j:slf4j-log4j12:1.7.21'
     compile 'org.ini4j:ini4j:0.5.4'
-    compile 'org.json:json:20131018'
+    compile 'org.json:json:20160212'
     compile 'org.apache.commons:commons-lang3:3.4'
-    compile 'org.eclipse.jetty:jetty-server:8.1.18.v20150929'
+    compile 'org.eclipse.jetty:jetty-server:8.1.19.v20160209'
 }
 
 android {
